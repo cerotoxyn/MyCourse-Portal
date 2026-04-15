@@ -46,10 +46,9 @@ function Home({ currentUser }) {
                     </div>
                   </div>
                   <div>
-                    <div className="fw-semibold">Designed UI</div>
+                    <div className="fw-semibold">Easy Navigation</div>
                     <div className="text-secondary">
-                      Bootstrap layout, color theme, cards, badges, and a
-                      polished navbar.
+                      A simple design for a seamless navigation experience.
                     </div>
                   </div>
                 </div>
