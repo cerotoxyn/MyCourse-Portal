@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "courseNumber": "CSCI 101",
+    "courseName": "Intro to Programming",
+    "description": "Learn programming fundamentals using problem solving and basic software design.",
+    "subjectArea": "Computer Science",
+    "credits": 3,
+    "teacherId": 101,
+    "teacherName": "Prof. Rivera"
+  },
+  {
+    "id": 2,
+    "courseNumber": "MATH 210",
+    "courseName": "Calculus I",
+    "description": "Limits, derivatives, applications, and introductory integration.",
+    "subjectArea": "Mathematics",
+    "credits": 4,
+    "teacherId": 102,
+    "teacherName": "Prof. Patel"
+  },
+  {
+    "id": 3,
+    "courseNumber": "ENG 201",
+    "courseName": "College Writing",
+    "description": "Develop argument-driven writing, revision habits, and research skills.",
+    "subjectArea": "English",
+    "credits": 3,
+    "teacherId": 103,
+    "teacherName": "Prof. Lawson"
+  },
+  {
+    "id": 4,
+    "courseNumber": "BIO 115",
+    "courseName": "General Biology",
+    "description": "Introduction to biological systems, genetics, cells, and evolution.",
+    "subjectArea": "Biology",
+    "credits": 4,
+    "teacherId": 101,
+    "teacherName": "Elena Rivera"
+  }
+]
