@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-function TeacherDashboard({ currentUser, courses, setCourses }) {
+function TeacherDashboard({ currentUser, courses, fetchCourses, loadingCourses }) {
   const [form, setForm] = useState({
     courseNumber: '',
     courseName: '',
@@ -10,6 +10,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
     credits: 3,
   });
   const [editingId, setEditingId] = useState(null);
+  const [message, setMessage] = useState('');
 
   if (!currentUser || currentUser.role !== 'teacher') {
     return (
@@ -31,9 +32,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
     );
   }
 
-  const teacherCourses = courses.filter(
-    (course) => course.teacherId === currentUser.id
-  );
+  const teacherCourses = courses.filter((course) => course.teacherId === currentUser.id);
 
   const resetForm = () => {
     setForm({
@@ -46,35 +45,46 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
     setEditingId(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (editingId) {
-      setCourses((prev) =>
-        prev.map((course) =>
-          course.id === editingId
-            ? {
-                ...course,
-                ...form,
-                credits: Number(form.credits),
-              }
-            : course
-        )
-      );
-    } else {
-      setCourses((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          ...form,
-          credits: Number(form.credits),
-          teacherId: currentUser.id,
-          teacherName: currentUser.name,
-        },
-      ]);
-    }
+    const payload = {
+      ...form,
+      credits: Number(form.credits),
+      teacherId: currentUser.id,
+      teacherName: currentUser.name,
+      role: currentUser.role,
+    };
 
-    resetForm();
+    try {
+      const url = editingId
+        ? `http://localhost:5000/api/courses/${editingId}`
+        : 'http://localhost:5000/api/courses';
+
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save course');
+      }
+
+      setMessage(
+        editingId ? 'Course updated successfully.' : 'Course created successfully.'
+      );
+      resetForm();
+      await fetchCourses();
+    } catch (error) {
+      setMessage(error.message);
+    }
   };
 
   const startEdit = (course) => {
@@ -88,9 +98,28 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
     });
   };
 
-  const deleteCourse = (courseId) => {
-    setCourses((prev) => prev.filter((course) => course.id !== courseId));
-    if (editingId === courseId) resetForm();
+  const deleteCourse = async (courseId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: currentUser.role }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete course');
+      }
+
+      setMessage('Course deleted successfully.');
+      if (editingId === courseId) resetForm();
+      await fetchCourses();
+    } catch (error) {
+      setMessage(error.message);
+    }
   };
 
   return (
@@ -101,6 +130,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
             <h2 className="page-title mb-3">
               {editingId ? 'Edit Course' : 'Create Course'}
             </h2>
+            {message && <div className="alert alert-info">{message}</div>}
 
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
@@ -108,9 +138,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
                 <input
                   className="form-control"
                   value={form.courseNumber}
-                  onChange={(e) =>
-                    setForm({ ...form, courseNumber: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, courseNumber: e.target.value })}
                   required
                 />
               </div>
@@ -120,9 +148,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
                 <input
                   className="form-control"
                   value={form.courseName}
-                  onChange={(e) =>
-                    setForm({ ...form, courseName: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, courseName: e.target.value })}
                   required
                 />
               </div>
@@ -133,9 +159,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
                   className="form-control"
                   rows="4"
                   value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
                   required
                 />
               </div>
@@ -146,9 +170,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
                   <input
                     className="form-control"
                     value={form.subjectArea}
-                    onChange={(e) =>
-                      setForm({ ...form, subjectArea: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, subjectArea: e.target.value })}
                     required
                   />
                 </div>
@@ -161,9 +183,7 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
                     max="6"
                     className="form-control"
                     value={form.credits}
-                    onChange={(e) =>
-                      setForm({ ...form, credits: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, credits: e.target.value })}
                     required
                   />
                 </div>
@@ -173,7 +193,6 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
                 <button type="submit" className="btn btn-primary">
                   {editingId ? 'Update Course' : 'Create Course'}
                 </button>
-
                 {editingId && (
                   <button
                     type="button"
@@ -194,7 +213,9 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
           <div className="card-body p-4">
             <h2 className="page-title mb-3">My Courses</h2>
 
-            {teacherCourses.length === 0 ? (
+            {loadingCourses ? (
+              <div className="alert alert-secondary mb-0">Loading your courses...</div>
+            ) : teacherCourses.length === 0 ? (
               <div className="alert alert-info mb-0">
                 You have not created any courses yet.
               </div>
@@ -213,12 +234,8 @@ function TeacherDashboard({ currentUser, courses, setCourses }) {
                     {teacherCourses.map((course) => (
                       <tr key={course.id}>
                         <td>
-                          <div className="fw-semibold">
-                            {course.courseNumber}
-                          </div>
-                          <div className="text-secondary small">
-                            {course.courseName}
-                          </div>
+                          <div className="fw-semibold">{course.courseNumber}</div>
+                          <div className="text-secondary small">{course.courseName}</div>
                         </td>
                         <td>{course.subjectArea}</td>
                         <td>{course.credits}</td>

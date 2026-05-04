@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-function Login({ users, currentUser, setCurrentUser }) {
+function Login({ currentUser, setCurrentUser }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -24,20 +24,28 @@ function Login({ users, currentUser, setCurrentUser }) {
     );
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    const matchedUser = users.find(
-      (user) => user.email === form.email && user.password === form.password
-    );
+    try {
+      const response = await fetch('http://localhost:5000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
 
-    if (!matchedUser) {
-      setError('Invalid email or password. Try one of the demo accounts below.');
-      return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      setCurrentUser(data);
+      navigate(data.role === 'teacher' ? '/teacher' : '/schedule');
+    } catch (error) {
+      setError(error.message);
     }
-
-    setCurrentUser(matchedUser);
-    navigate(matchedUser.role === 'teacher' ? '/teacher' : '/schedule');
   };
 
   return (

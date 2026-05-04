@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -7,73 +7,37 @@ import Courses from './pages/Courses';
 import Schedule from './pages/Schedule';
 import TeacherDashboard from './pages/TeacherDashboard';
 
-const sampleCourses = [
-  {
-    id: 1,
-    courseNumber: 'CSCI 101',
-    courseName: 'Intro to Programming',
-    description: 'Learn programming fundamentals using problem solving and basic software design.',
-    subjectArea: 'Computer Science',
-    credits: 3,
-    teacherId: 101,
-    teacherName: 'Prof. Rivera',
-  },
-  {
-    id: 2,
-    courseNumber: 'MATH 210',
-    courseName: 'Calculus I',
-    description: 'Limits, derivatives, applications, and introductory integration.',
-    subjectArea: 'Mathematics',
-    credits: 4,
-    teacherId: 102,
-    teacherName: 'Prof. Patel',
-  },
-  {
-    id: 3,
-    courseNumber: 'ENG 201',
-    courseName: 'College Writing',
-    description: 'Develop argument-driven writing, revision habits, and research skills.',
-    subjectArea: 'English',
-    credits: 3,
-    teacherId: 103,
-    teacherName: 'Prof. Lawson',
-  },
-  {
-    id: 4,
-    courseNumber: 'BIO 115',
-    courseName: 'General Biology',
-    description: 'Introduction to biological systems, genetics, cells, and evolution.',
-    subjectArea: 'Biology',
-    credits: 4,
-    teacherId: 101,
-    teacherName: 'Prof. Rivera',
-  },
-];
-
-const initialUsers = [
-  {
-    id: 101,
-    name: 'Elena Rivera',
-    email: 'teacher@portal.edu',
-    password: 'pass123',
-    role: 'teacher',
-  },
-  {
-    id: 201,
-    name: 'Jordan Lee',
-    email: 'student@portal.edu',
-    password: 'pass123',
-    role: 'student',
-  },
-];
-
 function App() {
-  const [users] = useState(initialUsers);
   const [currentUser, setCurrentUser] = useState(null);
-  const [courses, setCourses] = useState(sampleCourses);
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [courseError, setCourseError] = useState('');
   const [enrollments, setEnrollments] = useState([
     { id: 1, studentId: 201, courseId: 2 },
   ]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      setCourseError('');
+      const response = await fetch('http://localhost:5000/api/courses');
+
+      if (!response.ok) {
+        throw new Error('Failed to load courses');
+      }
+
+      const data = await response.json();
+      setCourses(data);
+    } catch (error) {
+      setCourseError('Could not connect to backend courses API.');
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -86,7 +50,6 @@ function App() {
             path="/login"
             element={
               <Login
-                users={users}
                 currentUser={currentUser}
                 setCurrentUser={setCurrentUser}
               />
@@ -98,9 +61,11 @@ function App() {
               <Courses
                 currentUser={currentUser}
                 courses={courses}
-                setCourses={setCourses}
                 enrollments={enrollments}
                 setEnrollments={setEnrollments}
+                loadingCourses={loadingCourses}
+                courseError={courseError}
+                fetchCourses={fetchCourses}
               />
             }
           />
@@ -121,7 +86,8 @@ function App() {
               <TeacherDashboard
                 currentUser={currentUser}
                 courses={courses}
-                setCourses={setCourses}
+                fetchCourses={fetchCourses}
+                loadingCourses={loadingCourses}
               />
             }
           />

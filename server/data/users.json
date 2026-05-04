@@ -1,0 +1,16 @@
+[
+  {
+    "id": 101,
+    "name": "Elena Rivera",
+    "email": "teacher@portal.edu",
+    "password": "pass123",
+    "role": "teacher"
+  },
+  {
+    "id": 201,
+    "name": "Jordan Lee",
+    "email": "student@portal.edu",
+    "password": "pass123",
+    "role": "student"
+  }
+]
