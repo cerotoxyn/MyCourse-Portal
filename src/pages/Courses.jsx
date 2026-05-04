@@ -8,9 +8,10 @@ function Courses({
   loadingCourses,
   courseError,
   fetchCourses,
+  fetchEnrollments,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [deleteMessage, setDeleteMessage] = useState('');
+  const [message, setMessage] = useState('');
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
@@ -31,34 +32,57 @@ function Courses({
     );
   };
 
-  const addToSchedule = (courseId) => {
+  const addToSchedule = async (courseId) => {
     if (!currentUser || currentUser.role !== 'student') return;
     if (isEnrolled(courseId)) return;
 
-    setEnrollments((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        studentId: currentUser.id,
-        courseId,
-      },
-    ]);
+    try {
+      const response = await fetch('http://localhost:5000/api/enrollments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: currentUser.id,
+          courseId,
+          role: currentUser.role,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add course');
+      }
+
+      setEnrollments((prev) => [...prev, data]);
+      await fetchEnrollments(currentUser.id);
+      setMessage('Course added to your schedule.');
+    } catch (error) {
+      setMessage(error.message);
+    }
   };
 
   const deleteCourse = async (courseId) => {
     try {
       const response = await fetch(`http://localhost:5000/api/courses/${courseId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: currentUser.role }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to delete course');
+        throw new Error(data.error || 'Failed to delete course');
       }
 
-      setDeleteMessage('Course deleted successfully.');
+      setMessage('Course deleted successfully.');
       await fetchCourses();
     } catch (error) {
-      setDeleteMessage('Unable to delete course right now.');
+      setMessage(error.message);
     }
   };
 
@@ -84,7 +108,7 @@ function Courses({
       </div>
 
       {courseError && <div className="alert alert-danger">{courseError}</div>}
-      {deleteMessage && <div className="alert alert-info">{deleteMessage}</div>}
+      {message && <div className="alert alert-info">{message}</div>}
       {loadingCourses && <div className="alert alert-secondary">Loading courses...</div>}
 
       {!loadingCourses && filteredCourses.length === 0 ? (

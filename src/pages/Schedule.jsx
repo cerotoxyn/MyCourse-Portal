@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom';
 
-function Schedule({ currentUser, courses, enrollments, setEnrollments }) {
+function Schedule({
+  currentUser,
+  courses,
+  enrollments,
+  setEnrollments,
+  fetchEnrollments,
+}) {
   if (!currentUser || currentUser.role !== 'student') {
     return (
       <div className="row justify-content-center">
@@ -26,12 +32,37 @@ function Schedule({ currentUser, courses, enrollments, setEnrollments }) {
     .map((enrollment) => courses.find((course) => course.id === enrollment.courseId))
     .filter(Boolean);
 
-  const dropCourse = (courseId) => {
-    setEnrollments((prev) =>
-      prev.filter(
-        (enrollment) => !(enrollment.studentId === currentUser.id && enrollment.courseId === courseId)
-      )
-    );
+  const dropCourse = async (courseId) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/enrollments', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: currentUser.id,
+          courseId,
+          role: currentUser.role,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to drop course');
+      }
+
+      setEnrollments((prev) =>
+        prev.filter(
+          (enrollment) =>
+            !(enrollment.studentId === currentUser.id && enrollment.courseId === courseId)
+        )
+      );
+
+      await fetchEnrollments(currentUser.id);
+    } catch (error) {
+      console.error(error.message);
+    }
   };
 
   return (
@@ -42,7 +73,9 @@ function Schedule({ currentUser, courses, enrollments, setEnrollments }) {
       </div>
 
       {myCourses.length === 0 ? (
-        <div className="alert alert-info">No courses added yet. Visit the Courses page to enroll.</div>
+        <div className="alert alert-info">
+          No courses added yet. Visit the Courses page to enroll.
+        </div>
       ) : (
         <div className="row g-4">
           {myCourses.map((course) => (
@@ -61,7 +94,10 @@ function Schedule({ currentUser, courses, enrollments, setEnrollments }) {
 
                   <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <span className="badge text-bg-light border">{course.subjectArea}</span>
-                    <button className="btn btn-outline-danger btn-sm" onClick={() => dropCourse(course.id)}>
+                    <button
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => dropCourse(course.id)}
+                    >
                       Drop Course
                     </button>
                   </div>

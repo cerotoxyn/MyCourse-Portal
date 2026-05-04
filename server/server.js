@@ -12,22 +12,38 @@ const __dirname = path.dirname(__filename);
 
 const coursesFile = path.join(__dirname, 'data', 'courses.json');
 const usersFile = path.join(__dirname, 'data', 'users.json');
+const enrollmentsFile = path.join(__dirname, 'data', 'enrollments.json');
 
 app.use(cors());
 app.use(express.json());
 
-async function readCourses() {
-  const data = await fs.readFile(coursesFile, 'utf-8');
+async function readJson(filePath) {
+  const data = await fs.readFile(filePath, 'utf-8');
   return JSON.parse(data);
+}
+
+async function writeJson(filePath, data) {
+  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+}
+
+async function readCourses() {
+  return readJson(coursesFile);
 }
 
 async function writeCourses(courses) {
-  await fs.writeFile(coursesFile, JSON.stringify(courses, null, 2));
+  await writeJson(coursesFile, courses);
 }
 
 async function readUsers() {
-  const data = await fs.readFile(usersFile, 'utf-8');
-  return JSON.parse(data);
+  return readJson(usersFile);
+}
+
+async function readEnrollments() {
+  return readJson(enrollmentsFile);
+}
+
+async function writeEnrollments(enrollments) {
+  await writeJson(enrollmentsFile, enrollments);
 }
 
 app.get('/api/health', (req, res) => {
@@ -158,16 +174,98 @@ app.delete('/api/courses/:id', async (req, res) => {
     }
 
     const courses = await readCourses();
-    const filtered = courses.filter((c) => c.id !== Number(req.params.id));
+    const filteredCourses = courses.filter((c) => c.id !== Number(req.params.id));
 
-    if (filtered.length === courses.length) {
+    if (filteredCourses.length === courses.length) {
       return res.status(404).json({ error: 'Course not found' });
     }
 
-    await writeCourses(filtered);
+    await writeCourses(filteredCourses);
+
+    const enrollments = await readEnrollments();
+    const filteredEnrollments = enrollments.filter(
+      (enrollment) => enrollment.courseId !== Number(req.params.id)
+    );
+    await writeEnrollments(filteredEnrollments);
+
     res.json({ message: 'Course deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete course' });
+  }
+});
+
+app.get('/api/enrollments/:studentId', async (req, res) => {
+  try {
+    const enrollments = await readEnrollments();
+    const studentEnrollments = enrollments.filter(
+      (enrollment) => enrollment.studentId === Number(req.params.studentId)
+    );
+    res.json(studentEnrollments);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to read enrollments' });
+  }
+});
+
+app.post('/api/enrollments', async (req, res) => {
+  try {
+    const { studentId, courseId, role } = req.body;
+
+    if (role !== 'student') {
+      return res.status(403).json({ error: 'Only students can add courses to schedule' });
+    }
+
+    const enrollments = await readEnrollments();
+
+    const alreadyExists = enrollments.some(
+      (enrollment) =>
+        enrollment.studentId === Number(studentId) &&
+        enrollment.courseId === Number(courseId)
+    );
+
+    if (alreadyExists) {
+      return res.status(400).json({ error: 'Course already added to schedule' });
+    }
+
+    const newEnrollment = {
+      id: enrollments.length ? Math.max(...enrollments.map((e) => e.id)) + 1 : 1,
+      studentId: Number(studentId),
+      courseId: Number(courseId),
+    };
+
+    enrollments.push(newEnrollment);
+    await writeEnrollments(enrollments);
+
+    res.status(201).json(newEnrollment);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add course to schedule' });
+  }
+});
+
+app.delete('/api/enrollments', async (req, res) => {
+  try {
+    const { studentId, courseId, role } = req.body;
+
+    if (role !== 'student') {
+      return res.status(403).json({ error: 'Only students can remove courses from schedule' });
+    }
+
+    const enrollments = await readEnrollments();
+    const filtered = enrollments.filter(
+      (enrollment) =>
+        !(
+          enrollment.studentId === Number(studentId) &&
+          enrollment.courseId === Number(courseId)
+        )
+    );
+
+    if (filtered.length === enrollments.length) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    await writeEnrollments(filtered);
+    res.json({ message: 'Course removed from schedule' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove course from schedule' });
   }
 });
 

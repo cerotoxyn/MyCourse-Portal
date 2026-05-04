@@ -12,13 +12,19 @@ function App() {
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [courseError, setCourseError] = useState('');
-  const [enrollments, setEnrollments] = useState([
-    { id: 1, studentId: 201, courseId: 2 },
-  ]);
+  const [enrollments, setEnrollments] = useState([]);
 
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.role === 'student') {
+      fetchEnrollments(currentUser.id);
+    } else {
+      setEnrollments([]);
+    }
+  }, [currentUser]);
 
   const fetchCourses = async () => {
     try {
@@ -36,6 +42,21 @@ function App() {
       setCourseError('Could not connect to backend courses API.');
     } finally {
       setLoadingCourses(false);
+    }
+  };
+
+  const fetchEnrollments = async (studentId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/enrollments/${studentId}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load enrollments');
+      }
+
+      const data = await response.json();
+      setEnrollments(data);
+    } catch (error) {
+      setEnrollments([]);
     }
   };
 
@@ -66,6 +87,7 @@ function App() {
                 loadingCourses={loadingCourses}
                 courseError={courseError}
                 fetchCourses={fetchCourses}
+                fetchEnrollments={fetchEnrollments}
               />
             }
           />
@@ -77,6 +99,7 @@ function App() {
                 courses={courses}
                 enrollments={enrollments}
                 setEnrollments={setEnrollments}
+                fetchEnrollments={fetchEnrollments}
               />
             }
           />

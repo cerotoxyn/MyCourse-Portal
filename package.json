@@ -3,17 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
-  "dev": "vite",
-  "server": "node server/server.js",
-  "client": "vite",
-  "start": "concurrently \"npm run server\" \"npm run client\"",
-  "build": "vite build",
-  "lint": "eslint .",
-  "preview": "vite preview"
-},
+  "scripts": {
+    "dev": "vite",
+    "server": "node server/server.js",
+    "client": "vite",
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "bootstrap": "^5.3.8",
+    "concurrently": "^9.2.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.1"
